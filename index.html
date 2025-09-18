@@ -1,23 +1,45 @@
-
 <!DOCTYPE html>
 <html>
   <head>
     <style>
+      body {
+        display: flex;
+        justify-content: center; /* horizontally center */
+        align-items: center;     /* vertically center */
+        height: 100vh;           /* full viewport height */
+        margin: 0;
+        background-color: #f0f0f0; /* optional: subtle background */
+        font-family: Arial, sans-serif;
+      }
+
       div {
-        height:40px;
-        width: 40px;
-        border:5px;
-        border: blue;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 150px;           /* increased for better spacing */
+        width: 200px;            /* increased for better spacing */
+        border: 5px solid blue;  /* proper border */
+        padding: 10px;
+        box-sizing: border-box;
+        background-color: #fff;  /* optional: white background */
+        text-align: center;
       }
 
       p {
         color: blue;
+        margin: 10px 0 0 0;      /* small margin above text */
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
       }
     </style>
   </head>
   <body>
     <div>
-      <img src="logo.png">
+      <img src="logo.png" alt="Logo">
       <p>You cannot access this page.</p>
     </div>
   </body>
