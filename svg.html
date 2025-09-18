@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SVG Drawing App</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; background: #f0f0f0; }
+  #toolbar { margin: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
+  button, select, input { padding: 5px; }
+  #canvas { border: 1px solid #333; background: #fff; touch-action: none; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <!-- Tools -->
+  <select id="tool">
+    <option value="pencil">Pencil</option>
+    <option value="eraser">Eraser</option>
+    <option value="rect">Rectangle</option>
+    <option value="circle">Circle</option>
+  </select>
+
+  <!-- Stroke Size -->
+  <select id="size">
+    <option value="2">Small</option>
+    <option value="5">Medium</option>
+    <option value="10">Large</option>
+  </select>
+
+  <!-- Stroke Color -->
+  <input type="color" id="strokeColor" value="#000000">
+
+  <!-- Fill Color -->
+  <input type="color" id="fillColor" value="#ff0000">
+
+  <!-- Export -->
+  <button id="export">Export SVG</button>
+</div>
+
+<svg id="canvas" width="800" height="600"></svg>
+
+<script>
+const svg = document.getElementById('canvas');
+const toolSelect = document.getElementById('tool');
+const sizeSelect = document.getElementById('size');
+const strokeColorInput = document.getElementById('strokeColor');
+const fillColorInput = document.getElementById('fillColor');
+const exportBtn = document.getElementById('export');
+
+let drawing = false;
+let currentElement = null;
+let startX = 0;
+let startY = 0;
+
+function getMousePos(evt) {
+  const rect = svg.getBoundingClientRect();
+  return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+}
+
+svg.addEventListener('mousedown', (e) => {
+  drawing = true;
+  const pos = getMousePos(e);
+  startX = pos.x;
+  startY = pos.y;
+
+  const tool = toolSelect.value;
+  const strokeWidth = sizeSelect.value;
+  const strokeColor = strokeColorInput.value;
+  const fillColor = fillColorInput.value;
+
+  if(tool === 'pencil') {
+    currentElement = document.createElementNS("http://www.w3.org/2000/svg","polyline");
+    currentElement.setAttribute("points", `${startX},${startY}`);
+    currentElement.setAttribute("stroke", strokeColor);
+    currentElement.setAttribute("stroke-width", strokeWidth);
+    currentElement.setAttribute("fill", "none");
+    currentElement.setAttribute("stroke-linecap", "round");
+    currentElement.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(currentElement);
+  } else if(tool === 'rect' || tool === 'circle') {
+    currentElement = document.createElementNS("http://www.w3.org/2000/svg", tool);
+    currentElement.setAttribute("x", startX);
+    currentElement.setAttribute("y", startY);
+    currentElement.setAttribute("width", 0);
+    currentElement.setAttribute("height", 0);
+    currentElement.setAttribute("cx", startX);
+    currentElement.setAttribute("cy", startY);
+    currentElement.setAttribute("r", 0);
+    currentElement.setAttribute("stroke", strokeColor);
+    currentElement.setAttribute("stroke-width", strokeWidth);
+    currentElement.setAttribute("fill", fillColor);
+    svg.appendChild(currentElement);
+  }
+});
+
+svg.addEventListener('mousemove', (e) => {
+  if(!drawing) return;
+  const pos = getMousePos(e);
+  const tool = toolSelect.value;
+
+  if(tool === 'pencil') {
+    let points = currentElement.getAttribute("points");
+    points += ` ${pos.x},${pos.y}`;
+    currentElement.setAttribute("points", points);
+  } else if(tool === 'rect') {
+    currentElement.setAttribute("x", Math.min(pos.x, startX));
+    currentElement.setAttribute("y", Math.min(pos.y, startY));
+    currentElement.setAttribute("width", Math.abs(pos.x - startX));
+    currentElement.setAttribute("height", Math.abs(pos.y - startY));
+  } else if(tool === 'circle') {
+    const dx = pos.x - startX;
+    const dy = pos.y - startY;
+    const r = Math.sqrt(dx*dx + dy*dy);
+    currentElement.setAttribute("r", r);
+    currentElement.setAttribute("cx", startX);
+    currentElement.setAttribute("cy", startY);
+  } else if(tool === 'eraser') {
+    const elements = document.elementsFromPoint(e.clientX, e.clientY);
+    for(const el of elements) {
+      if(el.parentNode === svg) {
+        svg.removeChild(el);
+        break;
+      }
+    }
+  }
+});
+
+svg.addEventListener('mouseup', () => {
+  drawing = false;
+  currentElement = null;
+});
+
+exportBtn.addEventListener('click', () => {
+  const serializer = new XMLSerializer();
+  let source = serializer.serializeToString(svg);
+  const blob = new Blob([source], {type:"image/svg+xml"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = "drawing.svg";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+
+</body>
+</html>
