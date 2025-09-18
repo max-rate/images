@@ -3,145 +3,164 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SVG Drawing App</title>
+<title>Canvas Drawing App with Icons</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; background: #f0f0f0; }
-  #toolbar { margin: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
-  button, select, input { padding: 5px; }
-  #canvas { border: 1px solid #333; background: #fff; touch-action: none; }
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #f0f0f0;
+    margin: 0;
+    padding: 0;
+  }
+  #toolbar {
+    margin: 10px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  button, select, input {
+    padding: 5px;
+    cursor: pointer;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  button.active {
+    border: 2px solid #333;
+  }
+  #canvas {
+    border: 2px solid #333;
+    background: white;
+    cursor: crosshair;
+  }
+  svg.icon {
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+  }
 </style>
 </head>
 <body>
 
 <div id="toolbar">
-  <!-- Tools -->
-  <select id="tool">
-    <option value="pencil">Pencil</option>
-    <option value="eraser">Eraser</option>
-    <option value="rect">Rectangle</option>
-    <option value="circle">Circle</option>
-  </select>
+  <!-- Tool Icons -->
+  <button id="pencilBtn" title="Pencil"><svg class="icon" viewBox="0 0 24 24"><path d="M3 21v-3l14-14 3 3-14 14H3z" stroke="black" fill="none" stroke-width="2"/></svg></button>
+  <button id="eraserBtn" title="Eraser"><svg class="icon" viewBox="0 0 24 24"><path d="M16 3l5 5-9 9H7v-5l9-9z" stroke="black" fill="none" stroke-width="2"/></svg></button>
+  <button id="rectBtn" title="Rectangle"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" stroke="black" fill="none" stroke-width="2"/></svg></button>
+  <button id="circleBtn" title="Circle"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" stroke="black" fill="none" stroke-width="2"/></svg></button>
+  <button id="lineBtn" title="Line"><svg class="icon" viewBox="0 0 24 24"><line x1="4" y1="20" x2="20" y2="4" stroke="black" stroke-width="2"/></svg></button>
 
-  <!-- Stroke Size -->
+  <!-- Stroke size -->
   <select id="size">
     <option value="2">Small</option>
     <option value="5">Medium</option>
     <option value="10">Large</option>
   </select>
 
-  <!-- Stroke Color -->
+  <!-- Stroke and Fill colors -->
   <input type="color" id="strokeColor" value="#000000">
-
-  <!-- Fill Color -->
   <input type="color" id="fillColor" value="#ff0000">
 
-  <!-- Export -->
-  <button id="export">Export SVG</button>
+  <button id="clear">Clear</button>
+  <button id="export">Export PNG</button>
 </div>
 
-<svg id="canvas" width="800" height="600"></svg>
+<canvas id="canvas" width="800" height="600"></canvas>
 
 <script>
-const svg = document.getElementById('canvas');
-const toolSelect = document.getElementById('tool');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// Tool buttons
+const tools = {
+  pencil: document.getElementById('pencilBtn'),
+  eraser: document.getElementById('eraserBtn'),
+  rect: document.getElementById('rectBtn'),
+  circle: document.getElementById('circleBtn'),
+  line: document.getElementById('lineBtn')
+};
+
+let currentTool = 'pencil';
+Object.keys(tools).forEach(tool => {
+  tools[tool].addEventListener('click', () => {
+    currentTool = tool;
+    // highlight active
+    Object.values(tools).forEach(b => b.classList.remove('active'));
+    tools[tool].classList.add('active');
+  });
+});
+tools.pencil.classList.add('active'); // default active
+
 const sizeSelect = document.getElementById('size');
 const strokeColorInput = document.getElementById('strokeColor');
 const fillColorInput = document.getElementById('fillColor');
+const clearBtn = document.getElementById('clear');
 const exportBtn = document.getElementById('export');
 
 let drawing = false;
-let currentElement = null;
 let startX = 0;
 let startY = 0;
+let snapshot = null;
 
-function getMousePos(evt) {
-  const rect = svg.getBoundingClientRect();
-  return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
-}
-
-svg.addEventListener('mousedown', (e) => {
+canvas.addEventListener('mousedown', (e) => {
   drawing = true;
-  const pos = getMousePos(e);
-  startX = pos.x;
-  startY = pos.y;
+  startX = e.offsetX;
+  startY = e.offsetY;
+  ctx.lineWidth = sizeSelect.value;
+  ctx.strokeStyle = strokeColorInput.value;
+  ctx.fillStyle = fillColorInput.value;
+  ctx.lineCap = 'round';
+  snapshot = ctx.getImageData(0,0,canvas.width,canvas.height);
 
-  const tool = toolSelect.value;
-  const strokeWidth = sizeSelect.value;
-  const strokeColor = strokeColorInput.value;
-  const fillColor = fillColorInput.value;
-
-  if(tool === 'pencil') {
-    currentElement = document.createElementNS("http://www.w3.org/2000/svg","polyline");
-    currentElement.setAttribute("points", `${startX},${startY}`);
-    currentElement.setAttribute("stroke", strokeColor);
-    currentElement.setAttribute("stroke-width", strokeWidth);
-    currentElement.setAttribute("fill", "none");
-    currentElement.setAttribute("stroke-linecap", "round");
-    currentElement.setAttribute("stroke-linejoin", "round");
-    svg.appendChild(currentElement);
-  } else if(tool === 'rect' || tool === 'circle') {
-    currentElement = document.createElementNS("http://www.w3.org/2000/svg", tool);
-    currentElement.setAttribute("x", startX);
-    currentElement.setAttribute("y", startY);
-    currentElement.setAttribute("width", 0);
-    currentElement.setAttribute("height", 0);
-    currentElement.setAttribute("cx", startX);
-    currentElement.setAttribute("cy", startY);
-    currentElement.setAttribute("r", 0);
-    currentElement.setAttribute("stroke", strokeColor);
-    currentElement.setAttribute("stroke-width", strokeWidth);
-    currentElement.setAttribute("fill", fillColor);
-    svg.appendChild(currentElement);
+  if (currentTool === 'pencil') {
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
   }
 });
 
-svg.addEventListener('mousemove', (e) => {
-  if(!drawing) return;
-  const pos = getMousePos(e);
-  const tool = toolSelect.value;
+canvas.addEventListener('mousemove', (e) => {
+  if (!drawing) return;
+  const x = e.offsetX;
+  const y = e.offsetY;
 
-  if(tool === 'pencil') {
-    let points = currentElement.getAttribute("points");
-    points += ` ${pos.x},${pos.y}`;
-    currentElement.setAttribute("points", points);
-  } else if(tool === 'rect') {
-    currentElement.setAttribute("x", Math.min(pos.x, startX));
-    currentElement.setAttribute("y", Math.min(pos.y, startY));
-    currentElement.setAttribute("width", Math.abs(pos.x - startX));
-    currentElement.setAttribute("height", Math.abs(pos.y - startY));
-  } else if(tool === 'circle') {
-    const dx = pos.x - startX;
-    const dy = pos.y - startY;
-    const r = Math.sqrt(dx*dx + dy*dy);
-    currentElement.setAttribute("r", r);
-    currentElement.setAttribute("cx", startX);
-    currentElement.setAttribute("cy", startY);
-  } else if(tool === 'eraser') {
-    const elements = document.elementsFromPoint(e.clientX, e.clientY);
-    for(const el of elements) {
-      if(el.parentNode === svg) {
-        svg.removeChild(el);
-        break;
-      }
+  if (currentTool === 'pencil') {
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  } else if (currentTool === 'eraser') {
+    ctx.clearRect(x - sizeSelect.value/2, y - sizeSelect.value/2, sizeSelect.value, sizeSelect.value);
+  } else {
+    // restore snapshot for shapes
+    ctx.putImageData(snapshot, 0, 0);
+    if (currentTool === 'rect') {
+      ctx.strokeRect(Math.min(startX, x), Math.min(startY, y), Math.abs(x - startX), Math.abs(y - startY));
+      ctx.fillRect(Math.min(startX, x), Math.min(startY, y), Math.abs(x - startX), Math.abs(y - startY));
+    } else if (currentTool === 'circle') {
+      const radius = Math.sqrt((x - startX)**2 + (y - startY)**2);
+      ctx.beginPath();
+      ctx.arc(startX, startY, radius, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+    } else if (currentTool === 'line') {
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
     }
   }
 });
 
-svg.addEventListener('mouseup', () => {
+canvas.addEventListener('mouseup', () => {
   drawing = false;
-  currentElement = null;
 });
 
+clearBtn.addEventListener('click', () => ctx.clearRect(0,0,canvas.width,canvas.height));
 exportBtn.addEventListener('click', () => {
-  const serializer = new XMLSerializer();
-  let source = serializer.serializeToString(svg);
-  const blob = new Blob([source], {type:"image/svg+xml"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = "drawing.svg";
-  a.click();
-  URL.revokeObjectURL(url);
+  const link = document.createElement('a');
+  link.download = 'drawing.png';
+  link.href = canvas.toDataURL();
+  link.click();
 });
 </script>
 
