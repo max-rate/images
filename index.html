@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="icon" type="image/png" href="logo.png"/>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="logo.png">
+
     <style>
       body {
         display: flex;
-        justify-content: center; /* horizontally center */
-        align-items: center;     /* vertically center */
+        justify-content: center; /* center horizontally */
+        align-items: center;     /* center vertically */
         height: 100vh;           /* full viewport height */
         margin: 0;
-        background-color: #f0f0f0; /* optional: subtle background */
+        background-color: #f0f0f0;
         font-family: Arial, sans-serif;
       }
 
@@ -18,23 +20,25 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 240px;           /* increased for better spacing */
-        width: 290px;            /* increased for better spacing */
-        border: 5px solid blue;  /* proper border */
+        height: 200px;           /* adjust div height */
+        width: 200px;            /* same as image width */
+        border: 5px solid blue;
         padding: 10px;
         box-sizing: border-box;
-        background-color: #fff;  /* optional: white background */
+        background-color: #fff;
         text-align: center;
       }
 
       p {
         color: blue;
-        margin: 10px 0 0 0;      /* small margin above text */
+        margin: 10px 0 0 0;
+        font-size: 14px;
       }
 
       img {
-        max-width: 100%;
-        height: auto;
+        width: 100%;             /* make image fit div width */
+        height: auto;            /* maintain aspect ratio */
+        object-fit: contain;     /* ensures image fits without cropping */
       }
     </style>
   </head>
